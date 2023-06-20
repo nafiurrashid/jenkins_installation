@@ -1,0 +1,111 @@
+#!/bin/bash
+# Author: Nafiur Rashid
+
+# Function to install packages
+install_packages() {
+    local package_manager=$1
+    shift
+    echo "Installing $@"
+    if ! command -v "$package_manager" >/dev/null 2>&1; then
+        echo "$package_manager not found. Skipping package installation..."
+        return
+    fi
+
+    "$package_manager" install "$@" -y
+}
+
+# Function to disable services
+disable_service() {
+    local service_name=$1
+    echo "Disabling $service_name..."
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl disable "$service_name" || true
+        systemctl stop "$service_name" || true
+    elif command -v service >/dev/null 2>&1; then
+        service "$service_name" stop || true
+        update-rc.d -f "$service_name" remove || true
+    else
+        echo "Service management command not found. Skipping service management..."
+    fi
+}
+
+# Detect package manager
+if command -v yum >/dev/null 2>&1; then
+    package_manager=yum
+elif command -v apt-get >/dev/null 2>&1; then
+    package_manager=apt-get
+else
+    echo "Unsupported package manager. Exiting."
+    exit 1
+fi
+
+# Update package manager
+echo "Updating package manager..."
+sudo "$package_manager" update -y
+
+# Install required packages
+install_packages "$package_manager" vim curl wget open-vm-tools
+install_packages "$package_manager" java-11-openjdk
+
+# Disable SELinux
+if command -v getenforce >/dev/null 2>&1; then
+    if [[ $(getenforce) != "Disabled" ]]; then
+        echo "Disabling SELinux..."
+        sudo setenforce 0 || true
+        sudo sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config || true
+    else
+        echo "SELinux is already disabled."
+    fi
+else
+    echo "SELinux command not found. Skipping SELinux disabling..."
+fi
+
+# Disable Firewall
+disable_service firewalld
+
+# Install Jenkins
+echo "Installing Jenkins..."
+if command -v wget >/dev/null 2>&1; then
+    wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+    sudo rpm --import https://pkg.jenkins.io/redhat/jenkins.io-2023.key
+else
+    echo "wget command not found. Skipping Jenkins installation..."
+fi
+install_packages "$package_manager" jenkins
+
+# Enable and start Jenkins
+disable_service jenkins
+echo "Enabling Jenkins..."
+if command -v systemctl >/dev/null 2>&1; then
+    sudo systemctl enable jenkins || true
+    sudo systemctl start jenkins || true
+elif command -v service >/dev/null 2>&1; then
+    sudo service jenkins start || true
+else
+    echo "Service management command not found. Skipping Jenkins service management..."
+fi
+
+# Install Git
+install_packages "$package_manager" git
+
+# Install Ansible
+install_packages "$package_manager" epel-release ansible
+
+# Display IP address
+echo "Here is your IP address:"
+ip_address=$(hostname -I | awk '{print $1}')
+if [ -n "$ip_address" ]; then
+    echo "$ip_address"
+else
+    echo "Failed to retrieve the IP address."
+fi
+
+# Display initial admin password for Jenkins
+echo "Finding the initial admin password for Jenkins..."
+echo "Please copy the following password:"
+jenkins_password_file="/var/lib/jenkins/secrets/initialAdminPassword"
+if [ -f "$jenkins_password_file" ]; then
+    cat "$jenkins_password_file"
+else
+    echo "Jenkins password file not found. Please check the Jenkins installation."
+fi

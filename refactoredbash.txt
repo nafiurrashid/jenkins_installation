@@ -1,0 +1,85 @@
+#!/bin/bash
+# Author: Nafiur Rashid
+
+# Function to install packages
+install_packages() {
+    echo "Installing $@"
+    if command -v yum >/dev/null 2>&1; then
+        yum install "$@" -y
+    elif command -v apt-get >/dev/null 2>&1; then
+        apt-get install "$@" -y
+    else
+        echo "Unsupported package manager. Exiting."
+        exit 1
+    fi
+}
+
+# Update package manager
+echo "Updating package manager..."
+if command -v yum >/dev/null 2>&1; then
+    yum update -y
+elif command -v apt-get >/dev/null 2>&1; then
+    apt-get update
+else
+    echo "Unsupported package manager. Exiting."
+    exit 1
+fi
+
+# Install required packages
+install_packages vim curl wget open-vm-tools
+
+# Install Java
+install_packages java-11-openjdk
+
+# Disable SELinux
+echo "Disabling SELinux..."
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+
+# Disable Firewall
+echo "Disabling Firewall..."
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl disable firewalld
+    systemctl stop firewalld
+else
+    echo "Firewall service not found. Skipping..."
+fi
+
+# Install Jenkins
+echo "Installing Jenkins..."
+if command -v wget >/dev/null 2>&1; then
+    wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+    rpm --import https://pkg.jenkins.io/redhat/jenkins.io-2023.key
+else
+    echo "wget command not found. Skipping Jenkins installation..."
+fi
+install_packages jenkins
+
+# Enable and start Jenkins
+echo "Enabling Jenkins..."
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl enable jenkins
+    systemctl start jenkins
+else
+    echo "Systemctl command not found. Skipping Jenkins service management..."
+fi
+
+# Install Git
+install_packages git
+
+# Install Ansible
+echo "Installing Ansible..."
+install_packages epel-release ansible
+
+# Display IP address
+echo "Here is your IP address:"
+hostname -I | awk '{print $1}'
+
+# Display initial admin password for Jenkins
+echo "Finding the initial admin password for Jenkins..."
+echo "Please copy the following password:"
+jenkins_password_file="/var/lib/jenkins/secrets/initialAdminPassword"
+if [[ -f "$jenkins_password_file" ]]; then
+    cat "$jenkins_password_file"
+else
+    echo "Jenkins password file not found."
+fi
