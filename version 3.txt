@@ -86,7 +86,7 @@ install_packages yum epel-release ansible
 
 # Display IP address
 echo "Here is your IP address:"
-hostname -I | awk '{print $1}'
+hostname -I | awk '{print $2}'
 
 # Display initial admin password for Jenkins
 echo "Finding the initial admin password for Jenkins..."
