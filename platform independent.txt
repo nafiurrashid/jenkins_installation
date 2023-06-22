@@ -11,7 +11,20 @@ install_packages() {
         return
     fi
 
-    "$package_manager" install "$@" -y
+    case $package_manager in
+        yum)
+            sudo "$package_manager" install "$@" -y
+            ;;
+        apt-get)
+            sudo "$package_manager" install "$@" -y
+            ;;
+        apk)
+            sudo "$package_manager" add --no-cache "$@"
+            ;;
+        *)
+            echo "Unsupported package manager. Skipping package installation..."
+            ;;
+    esac
 }
 
 # Function to disable services
@@ -19,11 +32,11 @@ disable_service() {
     local service_name=$1
     echo "Disabling $service_name..."
     if command -v systemctl >/dev/null 2>&1; then
-        systemctl disable "$service_name" || true
-        systemctl stop "$service_name" || true
+        sudo systemctl disable "$service_name" || true
+        sudo systemctl stop "$service_name" || true
     elif command -v service >/dev/null 2>&1; then
-        service "$service_name" stop || true
-        update-rc.d -f "$service_name" remove || true
+        sudo service "$service_name" stop || true
+        sudo update-rc.d -f "$service_name" remove || true
     else
         echo "Service management command not found. Skipping service management..."
     fi
@@ -43,11 +56,21 @@ fi
 
 # Update package manager
 echo "Updating package manager..."
-sudo "$package_manager" update -y
+case $package_manager in
+    yum)
+        sudo "$package_manager" update -y
+        ;;
+    apt-get)
+        sudo "$package_manager" update
+        ;;
+    apk)
+        sudo "$package_manager" update
+        ;;
+esac
 
 # Install required packages
 install_packages "$package_manager" vim curl wget open-vm-tools
-install_packages "$package_manager" java-11-openjdk
+install_packages "$package_manager" openjdk11-jdk
 
 # Disable SELinux
 if command -v getenforce >/dev/null 2>&1; then
@@ -93,4 +116,20 @@ fi
 # Install Git
 install_packages "$package_manager" git
 
-# Install Ans
+# Install Ansible
+install_packages "$package_manager" epel-release ansible
+
+# Display IP address
+echo "Here is your IP address:"
+ip_address=$(hostname -I | awk '{print $1}')
+echo "$ip_address"
+
+# Display initial admin password for Jenkins
+echo "Finding the initial admin password for Jenkins..."
+echo "Please copy the following password:"
+jenkins_password_file="/var/lib/jenkins/secrets/initialAdminPassword"
+if [[ -f "$jenkins_password_file" ]]; then
+    sudo cat "$jenkins_password_file"
+else
+    echo "Jenkins password file not found. Skipping Jenkins password retrieval..."
+fi
