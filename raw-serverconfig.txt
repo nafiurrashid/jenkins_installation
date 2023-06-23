@@ -1,0 +1,35 @@
+yum update -y 
+yum install vim curl wget open-vm-tools -y
+disable selinux
+setenforce 0
+vim /etc/selinux/config
+
+SELINUX=disabled
+
+systemctl stop firewalld
+systemctl disable firewalld
+
+sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+sudo rpm --import https://pkg.jenkins.io/redhat/jenkins.io-2023.key
+
+yum install jenkins -y
+systemctl start jenkins
+systemctl enable jenkins
+
+sudo yum install epel-release
+yum install ansible -y
+
+vim /etc/ansible/hosts
+[webservers]
+192.168.20.15
+[dbservers]
+192.168.20.14
+
+# ssh-keygen
+# ssh-copy-id root@192.168.20.15 [Web Server IP]
+# ssh-copy-id root@192.168.20.14 [Database Server IP]
+
+http://192.168.56.110:8080/
+cat /var/lib/jenkins/secrets/initialAdminPassword
+5b984865e4de4987b7644534b21089aa
+
