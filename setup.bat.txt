@@ -2,12 +2,12 @@
 # Author : Nafiur Rashid
 echo "Update yum>>>>>>>>>>>>>>>>"
 yum update -y
-echo "installing vim, curl, wget, open-vm-tools>>>>>>>>>>>>>>>>"
-yum install vim curl wget open-vm-tools -y
+echo "installing vim, curl, wget, open-vm-tools, git>>>>>>>>>>>>>>>>"
+yum install vim curl wget open-vm-tools git -y
 echo "installing java >>>>>>>>>>>>>>>>"
 yum install java-11-openjdk.x86_64 -y
 echo "disableing SELINUX>>>>>>>>>>>>>>>>"
-sed -i 's/SELINUX=disable/SELINUX=disable/g' /etc/selinux/config
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
 echo "disableing Firewall>>>>>>>>>>>>>>>>"
 systemctl disable firewalld
 systemctl stop firewalld
