@@ -18,8 +18,6 @@ yum install jenkins -y
 echo "enabling jenkins>>>>>>>>>>>>>>>>"
 systemctl enable jenkins
 systemctl start jenkins
-echo "installing git>>>>>>>>>>>>>>>>"
-yum install git -y
 echo "installing ansible>>>>>>>>>>>>>>>>"
 sudo yum install epel-release
 yum install ansible -y
