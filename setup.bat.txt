@@ -20,7 +20,7 @@ systemctl enable jenkins
 systemctl start jenkins
 echo "installing ansible>>>>>>>>>>>>>>>>"
 sudo yum install epel-release
-yum install ansible -y
+#yum install ansible -y
 echo "here is your IP addres>>>>>>>>>>>>>>>>"
 hostname -I | awk '{print $2}'
 echo "finding admin password of jenkins>>>>>>>>>>>>>>>>"
